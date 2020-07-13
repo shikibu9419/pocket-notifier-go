@@ -1,4 +1,4 @@
-package slack
+package api
 
 import (
 	"fmt"
@@ -12,7 +12,7 @@ type webhook struct {
 	message slack.WebhookMessage
 }
 
-func NewWebhook(channel string, message slack.WebhookMessage) *webhook {
+func NewSlackWebhook(channel string, message slack.WebhookMessage) *webhook {
 	return &webhook{
 		channel: channel,
 		message: message}

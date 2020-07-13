@@ -1,4 +1,4 @@
-package pocket
+package api
 
 import (
 	"encoding/json"

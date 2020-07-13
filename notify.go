@@ -1,14 +1,13 @@
 package main
 
 import (
-	"./pocket"
-	mySlack "./slack"
+	"./api"
 	"fmt"
 	"github.com/slack-go/slack"
 	"log"
 )
 
-func appendArticleSections(blocks []slack.Block, article pocket.Article) []slack.Block {
+func appendArticleSections(blocks []slack.Block, article api.Article) []slack.Block {
 	blocks = append(blocks, slack.NewDividerBlock())
 
 	articleText := fmt.Sprintf("%s\n%s\n総文字数: %d", article.ResolvedTitle, article.ResolvedUrl, article.WordCount)
@@ -25,7 +24,7 @@ func appendArticleSections(blocks []slack.Block, article pocket.Article) []slack
 }
 
 func notify() {
-	p := pocket.NewPocket()
+	p := api.NewPocket()
 	articles, tag := p.GetRandomArticles()
 	fmt.Println(articles)
 
@@ -39,7 +38,7 @@ func notify() {
 
 	msg := slack.WebhookMessage{Text: "本日のお告げが届きました", Blocks: &slack.Blocks{BlockSet: blocks}}
 
-	w := mySlack.NewWebhook("pocket", msg)
+	w := api.NewSlackWebhook("pocket", msg)
 	err := w.Send()
 
 	if err != nil {
