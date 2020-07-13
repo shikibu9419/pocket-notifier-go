@@ -1,40 +1,51 @@
 package main
 
 import (
+	"./pocket"
 	mySlack "./slack"
 	"fmt"
 	"github.com/slack-go/slack"
+	"log"
+	"os"
 )
 
-func appendArticleSections(blocks []slack.Block, itemId string) []slack.Block {
-	divider := slack.NewDividerBlock()
+func appendArticleSections(blocks []slack.Block, article pocket.Article) []slack.Block {
+	blocks = append(blocks, slack.NewDividerBlock())
 
-	articleText := slack.NewTextBlockObject("mrkdwn", "総文字数: ", false, false)
-	articleImage := slack.NewImageBlockElement("http://design-ec.com/d/e_others_50/l_e_others_501.png", "no_image")
-	article := slack.NewSectionBlock(articleText, nil, slack.NewAccessory(articleImage))
+	if article.ImageUrl == "" {
+		article.ImageUrl = os.Getenv("NO_IMAGE_URL")
+	}
+	articleText := fmt.Sprintf("%s\n%s\n総文字数: %d", article.ResolvedTitle, article.ResolvedUrl, article.WordCount)
+	articleTextBlock := slack.NewTextBlockObject("mrkdwn", articleText, false, false)
+	articleImage := slack.NewImageBlockElement(article.ImageUrl, article.ResolvedTitle[:15])
 
-	readButton := slack.NewButtonBlockElement("read_article", "item_id", slack.NewTextBlockObject("plain_text", "読んだ", false, false))
-	read := slack.NewActionBlock("block_id", readButton)
+	blocks = append(blocks, slack.NewSectionBlock(articleTextBlock, nil, slack.NewAccessory(articleImage)))
 
-	blocks = append(blocks, divider)
-	blocks = append(blocks, article)
-	blocks = append(blocks, read)
+	readButton := slack.NewButtonBlockElement("read_article", article.ItemId, slack.NewTextBlockObject("plain_text", "読んだ", false, false))
+
+	blocks = append(blocks, slack.NewActionBlock(article.ItemId, readButton))
+
 	return blocks
 }
 
 func notify() {
-	header := slack.NewSectionBlock(slack.NewTextBlockObject("mrkdwn", "この記事を読むのです...", false, false), nil, nil)
+	articles := pocket.GetArticles("todo", "newest", 2)
+
+	headerText := fmt.Sprintf("この記事を読むのです...\nタグ: *%s*\nピックアップ方法: *%s*", "todo", "random")
+	header := slack.NewSectionBlock(slack.NewTextBlockObject("mrkdwn", headerText, false, false), nil, nil)
 	blocks := []slack.Block{header}
 
-	blocks = appendArticleSections(blocks, "itemId")
+	for _, article := range articles {
+		blocks = appendArticleSections(blocks, article)
+	}
 
-	msg := slack.WebhookMessage{Text: "debug message", Blocks: &slack.Blocks{BlockSet: blocks}}
+	msg := slack.WebhookMessage{Text: "本日のお告げが届きました", Blocks: &slack.Blocks{BlockSet: blocks}}
 
 	w := mySlack.NewWebhook("pocket", msg)
 	err := w.Send()
 
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 	}
 }
 

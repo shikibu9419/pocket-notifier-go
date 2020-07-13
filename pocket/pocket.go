@@ -2,13 +2,12 @@ package pocket
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/mattn/go-jsonpointer"
 	"io/ioutil"
 	"log"
 	"net/http"
-	"strconv"
 	"os"
+	"strconv"
 )
 
 var baseUrl = "https://getpocket.com/v3/"
@@ -17,6 +16,7 @@ type Article struct {
 	ItemId        string
 	ResolvedTitle string
 	ResolvedUrl   string
+	ImageUrl      string
 	WordCount     int
 }
 
@@ -69,13 +69,10 @@ func GetArticles(tag string, sort string, count int) []Article {
 			ItemId:        articleMap["item_id"].(string),
 			ResolvedTitle: articleMap["resolved_title"].(string),
 			ResolvedUrl:   articleMap["resolved_url"].(string),
+			ImageUrl:      articleMap["top_image_url"].(string),
 			WordCount:     wordCount,
 		})
 	}
 
 	return articles
-}
-
-func main() {
-	fmt.Println(GetArticles("todo", "newest", 2))
 }
