@@ -25,9 +25,9 @@ func appendArticleSections(blocks []slack.Block, article pocket.Article) []slack
 }
 
 func notify() {
-	articles := pocket.GetArticles("todo", "newest", 2)
+	articles, tag := pocket.GetRandomArticles()
 
-	headerText := fmt.Sprintf("この記事を読むのです...\nタグ: *%s*\nピックアップ方法: *%s*", "todo", "random")
+	headerText := fmt.Sprintf("この記事を読むのです...\nタグ: *%s*",tag)
 	header := slack.NewSectionBlock(slack.NewTextBlockObject("mrkdwn", headerText, false, false), nil, nil)
 	blocks := []slack.Block{header}
 

@@ -2,13 +2,14 @@ package pocket
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/mattn/go-jsonpointer"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 var baseUrl = "https://getpocket.com/v3/"
@@ -18,6 +19,9 @@ type Env struct {
 	AccessToken string `split_words:"true"`
 	ConsumerKey string `split_words:"true"`
 	NoImageUrl  string `split_words:"true"`
+	Tag         string `default:"todo"`
+	Sort        string `default:"newest"`
+	MaxCount    int    `split_words:"true" default:"2"`
 }
 
 type Article struct {
@@ -28,7 +32,7 @@ type Article struct {
 	WordCount     int
 }
 
-func GetArticles(tag string, sort string, count int) []Article {
+func GetArticles(tag string, sort string) []Article {
 	envconfig.Process("pocket", &env)
 
 	req, err := http.NewRequest("POST", baseUrl+"get", nil)
@@ -43,9 +47,6 @@ func GetArticles(tag string, sort string, count int) []Article {
 	params.Add("sort", sort)
 	params.Add("contentType", "article")
 
-	if sort == "random" {
-		params.Add("sort", "newest")
-	}
 	req.URL.RawQuery = params.Encode()
 
 	client := new(http.Client)
@@ -66,16 +67,16 @@ func GetArticles(tag string, sort string, count int) []Article {
 	}
 
 	articleList := make([]interface{}, 0)
-	for _, value := range list.(map[string]interface{}) {
-		articleList = append(articleList, value)
+	for _, article := range list.(map[string]interface{}) {
+		articleList = append(articleList, article)
 	}
 
-	articles := make([]Article, 0, count)
-	for _, article := range articleList[:count] {
+	articles := make([]Article, 0, len(articleList))
+	for _, article := range articleList {
 		articleMap := article.(map[string]interface{})
-		imageUrl := articleMap["top_image_url"].(string)
-		if imageUrl == "" {
-			imageUrl = env.NoImageUrl
+		imageUrl := env.NoImageUrl
+		if articleMap["top_image_url"] != nil {
+			imageUrl = articleMap["top_image_url"].(string)
 		}
 		wordCount, _ := strconv.Atoi(articleMap["word_count"].(string))
 
@@ -89,4 +90,19 @@ func GetArticles(tag string, sort string, count int) []Article {
 	}
 
 	return articles
+}
+
+func GetRandomArticles() ([]Article, string) {
+	envconfig.Process("pocket", &env)
+
+	allArticles := GetArticles(env.Tag, env.Sort)
+
+	articles := make([]Article, 0, env.MaxCount)
+
+	rand.Seed(time.Now().UnixNano())
+	for i := 0; i < env.MaxCount; i++ {
+		articles = append(articles, allArticles[rand.Intn(env.MaxCount)])
+	}
+
+	return articles, env.Tag
 }
