@@ -6,15 +6,11 @@ import (
 	"fmt"
 	"github.com/slack-go/slack"
 	"log"
-	"os"
 )
 
 func appendArticleSections(blocks []slack.Block, article pocket.Article) []slack.Block {
 	blocks = append(blocks, slack.NewDividerBlock())
 
-	if article.ImageUrl == "" {
-		article.ImageUrl = os.Getenv("NO_IMAGE_URL")
-	}
 	articleText := fmt.Sprintf("%s\n%s\n総文字数: %d", article.ResolvedTitle, article.ResolvedUrl, article.WordCount)
 	articleTextBlock := slack.NewTextBlockObject("mrkdwn", articleText, false, false)
 	articleImage := slack.NewImageBlockElement(article.ImageUrl, article.ResolvedTitle[:15])

@@ -2,15 +2,23 @@ package pocket
 
 import (
 	"encoding/json"
+	"fmt"
+	"github.com/kelseyhightower/envconfig"
 	"github.com/mattn/go-jsonpointer"
 	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
 	"strconv"
 )
 
 var baseUrl = "https://getpocket.com/v3/"
+var env Env
+
+type Env struct {
+	AccessToken string `split_words:"true"`
+	ConsumerKey string `split_words:"true"`
+	NoImageUrl  string `split_words:"true"`
+}
 
 type Article struct {
 	ItemId        string
@@ -21,14 +29,16 @@ type Article struct {
 }
 
 func GetArticles(tag string, sort string, count int) []Article {
+	envconfig.Process("pocket", &env)
+
 	req, err := http.NewRequest("POST", baseUrl+"get", nil)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	params := req.URL.Query()
-	params.Add("access_token", os.Getenv("POCKET_ACCESS_TOKEN"))
-	params.Add("consumer_key", os.Getenv("POCKET_CONSUMER_KEY"))
+	params.Add("access_token", env.AccessToken)
+	params.Add("consumer_key", env.ConsumerKey)
 	params.Add("tag", tag)
 	params.Add("sort", sort)
 	params.Add("contentType", "article")
@@ -63,13 +73,17 @@ func GetArticles(tag string, sort string, count int) []Article {
 	articles := make([]Article, 0, count)
 	for _, article := range articleList[:count] {
 		articleMap := article.(map[string]interface{})
+		imageUrl := articleMap["top_image_url"].(string)
+		if imageUrl == "" {
+			imageUrl = env.NoImageUrl
+		}
 		wordCount, _ := strconv.Atoi(articleMap["word_count"].(string))
 
 		articles = append(articles, Article{
 			ItemId:        articleMap["item_id"].(string),
 			ResolvedTitle: articleMap["resolved_title"].(string),
 			ResolvedUrl:   articleMap["resolved_url"].(string),
-			ImageUrl:      articleMap["top_image_url"].(string),
+			ImageUrl:      imageUrl,
 			WordCount:     wordCount,
 		})
 	}
